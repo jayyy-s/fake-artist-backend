@@ -17,7 +17,11 @@ const handleMessage = asyncHandler(async (bytes, uuid) => {
     case "clientReady":
       connections[uuid].gameId = gameId;
       if (!game) return; // return on null games (can happen if navigated to invalid id)
-      game.players.push(uuid);
+
+      // add player if not already included
+      if (!game.players.includes(uuid)) {
+        game.players.push(uuid);
+      }
       await gameRepository.save(game);
     case "drawLine":
       const { canvasState } = game;

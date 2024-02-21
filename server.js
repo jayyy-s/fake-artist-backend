@@ -11,7 +11,7 @@ import {
 } from "./eventHandlers/messageEventHandler.js";
 import connections from "./connections.js";
 import asyncHandler from "express-async-handler";
-import { errorHandler } from './middleware/errorMiddleware.js';
+import { errorHandler } from "./middleware/errorMiddleware.js";
 
 const PORT = 5000 || process.env.PORT;
 
@@ -30,7 +30,7 @@ wss.on("connection", (conn, req) => {
   // const { connId } = url.parse(req.url, true).query;
   const uuid = uuidv4();
   connections[uuid] = conn;
-  
+
   conn.on(
     "message",
     asyncHandler(async (message) => {
@@ -38,7 +38,10 @@ wss.on("connection", (conn, req) => {
     })
   );
 
-  conn.on("close", () => handleClose(uuid));
+  conn.on(
+    "close",
+    asyncHandler(async () => await handleClose(uuid))
+  );
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
