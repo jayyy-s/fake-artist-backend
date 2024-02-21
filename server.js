@@ -11,6 +11,7 @@ import {
 } from "./eventHandlers/messageEventHandler.js";
 import connections from "./connections.js";
 import asyncHandler from "express-async-handler";
+import { errorHandler } from './middleware/errorMiddleware.js';
 
 const PORT = 5000 || process.env.PORT;
 
@@ -21,13 +22,15 @@ app.use(express.json());
 
 app.use("/game", gameRouter);
 
+app.use(errorHandler);
+
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (conn, req) => {
   // const { connId } = url.parse(req.url, true).query;
   const uuid = uuidv4();
   connections[uuid] = conn;
-
+  
   conn.on(
     "message",
     asyncHandler(async (message) => {
