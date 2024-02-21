@@ -28,19 +28,19 @@ const wss = new WebSocketServer({ server });
 
 wss.on("connection", (conn, req) => {
   // const { connId } = url.parse(req.url, true).query;
-  const uuid = uuidv4();
-  connections[uuid] = conn;
+  const playerId = uuidv4();
+  connections[playerId] = conn;
 
   conn.on(
     "message",
     asyncHandler(async (message) => {
-      await handleMessage(message, uuid);
+      await handleMessage(message, playerId);
     })
   );
 
   conn.on(
     "close",
-    asyncHandler(async () => await handleClose(uuid))
+    asyncHandler(async () => await handleClose(playerId))
   );
 });
 

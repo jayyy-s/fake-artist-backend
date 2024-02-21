@@ -8,19 +8,22 @@ import {
 import asyncHandler from "express-async-handler";
 import { gameRepository } from "../models/gameModel.js";
 
-const handleMessage = asyncHandler(async (bytes, uuid) => {
+const handleMessage = asyncHandler(async (bytes, playerId) => {
   const message = JSON.parse(bytes.toString());
   const { gameId } = message.data;
   const game = await searchGameById(gameId);
 
   switch (message.type) {
     case "clientReady":
-      connections[uuid].gameId = gameId;
+      connections[playerId].gameId = gameId;
       if (!game) return; // return on null games (can happen if navigated to invalid id)
 
       // add player if not already included
-      if (!game.players.includes(uuid)) {
-        game.players.push(uuid);
+      if (!game.players.includes(playerId)) {
+        if (game.players.length === 0) { // make the first player the host
+          game.host = playerId;
+        }
+        game.players.push(playerId);
       }
       await gameRepository.save(game);
     case "drawLine":
@@ -28,19 +31,19 @@ const handleMessage = asyncHandler(async (bytes, uuid) => {
       broadcast(
         gameId,
         { type: "drawCurrentCanvasState", data: { canvasState } },
-        uuid
+        playerId
       );
       break;
   }
 });
 
-const handleClose = asyncHandler(async (uuid) => {
-  const { gameId } = connections[uuid];
-  const game = await removePlayerFromGame(gameId, uuid);
-  delete connections[uuid];
+const handleClose = asyncHandler(async (playerId) => {
+  const { gameId } = connections[playerId];
+  const game = await removePlayerFromGame(gameId, playerId);
+  delete connections[playerId];
 
   // delete games with no players
-  if (game && game.players.length === 0) {
+  if (game && (game.players.length === 0 || playerId === game.host)) {
     const entityId = await getGameEntityId(gameId);
     await gameRepository.remove(entityId);
   }

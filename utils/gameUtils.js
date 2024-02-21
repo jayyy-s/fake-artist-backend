@@ -22,10 +22,10 @@ const getGameEntityId = asyncHandler(async (gameId) => {
   return game[entityIdSymbol];
 });
 
-const removePlayerFromGame = asyncHandler(async (gameId, uuid) => {
+const removePlayerFromGame = asyncHandler(async (gameId, playerId) => {
   const game = await searchGameById(gameId);
   if (!game) return null;
-  game.players.splice(game.players.indexOf(uuid), 1);
+  game.players.splice(game.players.indexOf(playerId), 1);
 
   gameRepository.save(game);
   return game;
