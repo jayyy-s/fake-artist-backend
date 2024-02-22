@@ -12,7 +12,7 @@ const createGame = asyncHandler(async (req, res) => {
     fakeArtist: "",
     currentArtist: "",
     canvasState: "",
-    gameState: "active",
+    gameState: "inactive",
   };
 
   await gameRepository.save(newGame);

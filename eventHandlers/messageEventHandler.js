@@ -1,4 +1,4 @@
-import broadcast from "../utils/broadcast.js";
+import { broadcast, emit } from "../utils/messageSendUtils.js";
 import connections from "../connections.js";
 import {
   searchGameById,
@@ -7,6 +7,8 @@ import {
 } from "../utils/gameUtils.js";
 import asyncHandler from "express-async-handler";
 import { gameRepository } from "../models/gameModel.js";
+
+const SEND_TO_SENDER = true;
 
 const handleMessage = asyncHandler(async (bytes, playerId) => {
   const message = JSON.parse(bytes.toString());
@@ -20,19 +22,27 @@ const handleMessage = asyncHandler(async (bytes, playerId) => {
 
       // add player if not already included
       if (!game.players.includes(playerId)) {
-        if (game.players.length === 0) { // make the first player the host
-          game.host = playerId;
-        }
         game.players.push(playerId);
+        if (game.players.length === 1) {
+          // make the first player the host
+          game.host = playerId;
+          emit(playerId, { type: "setHostClient" });
+        }
       }
       await gameRepository.save(game);
+      break;
     case "drawLine":
-      const { canvasState } = game;
+      const { canvasState, gameState } = game;
       broadcast(
         gameId,
-        { type: "drawCurrentCanvasState", data: { canvasState } },
+        { type: "drawCurrentCanvasState", data: { canvasState, gameState } },
         playerId
       );
+      break;
+    case "hostStartGame":
+      game.gameState = "active";
+      await gameRepository.save(game);
+      broadcast(gameId, { type: "serverStartGame" }, playerId, SEND_TO_SENDER);
       break;
   }
 });
