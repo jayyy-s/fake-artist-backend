@@ -25,10 +25,19 @@ const getGameEntityId = asyncHandler(async (gameId) => {
 const removePlayerFromGame = asyncHandler(async (gameId, playerId) => {
   const game = await searchGameById(gameId);
   if (!game) return null;
-  game.players.splice(game.players.indexOf(playerId), 1);
+  game.players.splice(indexOfPlayerId(game.players, playerId), 1);
 
   gameRepository.save(game);
   return game;
 });
 
-export { searchGameById, getGameEntityId, removePlayerFromGame };
+const indexOfPlayerId = (players, playerIdToFind) => {
+  return players.indexOf(players.find((p) => p.includes(playerIdToFind)));
+};
+
+export {
+  searchGameById,
+  getGameEntityId,
+  removePlayerFromGame,
+  indexOfPlayerId,
+};
