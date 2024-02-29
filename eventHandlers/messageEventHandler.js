@@ -5,6 +5,7 @@ import {
   getGameEntityId,
   removePlayerFromGame,
   indexOfPlayerId,
+  getPlayerUsernames,
 } from "../utils/gameUtils.js";
 import asyncHandler from "express-async-handler";
 import { gameRepository } from "../models/gameModel.js";
@@ -39,6 +40,12 @@ const handleMessage = asyncHandler(async (bytes, playerId) => {
           emit(playerId, { type: "setHostClient" });
         }
       }
+      broadcast(
+        gameId,
+        { type: "updatePlayers", data: { players: getPlayerUsernames(game) } }, // Add players
+        playerId,
+        SEND_TO_SENDER
+      );
       await gameRepository.save(game);
       break;
     case "drawLine":
@@ -79,6 +86,13 @@ const handleClose = asyncHandler(async (playerId) => {
   if (game && (game.players.length === 0 || playerId === game.host)) {
     const entityId = await getGameEntityId(gameId);
     await gameRepository.remove(entityId);
+  } else {
+    // if the game still exists, send message to other clients to remove
+    broadcast(
+      gameId,
+      { type: "updatePlayers", data: { players: getPlayerUsernames(game) } }, // Remove players
+      playerId
+    );
   }
 });
 

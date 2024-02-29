@@ -35,9 +35,28 @@ const indexOfPlayerId = (players, playerIdToFind) => {
   return players.indexOf(players.find((p) => p.includes(playerIdToFind)));
 };
 
+const getPlayerUsernameById = asyncHandler(async (playerId, gameId) => {
+  const game = await searchGameById(gameId);
+  if (!game) return null;
+  const player = game.players[indexOfPlayerId(game.players, playerId)];
+
+  return player.username;
+});
+
+const getPlayerUsernames = (game) => {
+  let playerUsernames = [];
+  let playersJson = game.players.map((p) => JSON.parse(p));
+
+  playersJson.map((player) => playerUsernames.push(player.username));
+
+  return playerUsernames;
+};
+
 export {
   searchGameById,
   getGameEntityId,
   removePlayerFromGame,
   indexOfPlayerId,
+  getPlayerUsernameById,
+  getPlayerUsernames,
 };

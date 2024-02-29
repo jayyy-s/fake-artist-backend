@@ -1,7 +1,6 @@
 import connections from "../connections.js";
 
 const emit = (playerId, data) => {
-  console.log(playerId);
   const conn = connections[playerId];
   conn.send(JSON.stringify(data));
 };
