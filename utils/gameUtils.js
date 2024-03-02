@@ -22,32 +22,32 @@ const getGameEntityId = asyncHandler(async (gameId) => {
   return game[entityIdSymbol];
 });
 
-const removePlayerFromGame = asyncHandler(async (gameId, playerId) => {
+const removePlayerFromGame = asyncHandler(async (gameId, connId) => {
   const game = await searchGameById(gameId);
   if (!game) return null;
-  game.players.splice(indexOfPlayerId(game.players, playerId), 1);
+  game.players.splice(indexOfConnId(game.players, connId), 1);
 
   gameRepository.save(game);
   return game;
 });
 
-const indexOfPlayerId = (players, playerIdToFind) => {
-  return players.indexOf(players.find((p) => p.includes(playerIdToFind)));
+const indexOfConnId = (players, connIdToFind) => {
+  return players.indexOf(players.find((p) => p.includes(connIdToFind)));
 };
 
-const getPlayerUsernameById = asyncHandler(async (playerId, gameId) => {
+const getPlayerUsernameByConnId = asyncHandler(async (connId, gameId) => {
   const game = await searchGameById(gameId);
   if (!game) return null;
-  const player = game.players[indexOfPlayerId(game.players, playerId)];
+  const player = game.players[indexOfConnId(game.players, connId)];
 
   return player.username;
 });
 
-const getPlayerUsernames = (game) => {
+const getPlayers = (game) => {
   let playerUsernames = [];
   let playersJson = game.players.map((p) => JSON.parse(p));
 
-  playersJson.map((player) => playerUsernames.push(player.username));
+  playersJson.map((player) => playerUsernames.push({ username: player.username, id: player.playerId }));
 
   return playerUsernames;
 };
@@ -56,7 +56,7 @@ export {
   searchGameById,
   getGameEntityId,
   removePlayerFromGame,
-  indexOfPlayerId,
-  getPlayerUsernameById,
-  getPlayerUsernames,
+  indexOfConnId,
+  getPlayerUsernameByConnId,
+  getPlayers,
 };

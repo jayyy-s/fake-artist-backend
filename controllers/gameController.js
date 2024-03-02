@@ -13,6 +13,7 @@ const createGame = asyncHandler(async (req, res) => {
     currentArtist: "",
     canvasState: "",
     gameState: "inactive",
+    playerIdCounter: 0,
   };
 
   await gameRepository.save(newGame);

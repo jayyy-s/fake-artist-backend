@@ -1,6 +1,5 @@
 import express from "express";
 import http from "http";
-import url from "url";
 import "dotenv/config";
 import { v4 as uuidv4 } from "uuid";
 import { WebSocketServer } from "ws";
@@ -27,20 +26,19 @@ app.use(errorHandler);
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (conn, req) => {
-  // const { connId } = url.parse(req.url, true).query;
-  const playerId = uuidv4();
-  connections[playerId] = conn;
+  const connId = uuidv4();
+  connections[connId] = conn;
 
   conn.on(
     "message",
     asyncHandler(async (message) => {
-      await handleMessage(message, playerId);
+      await handleMessage(message, connId);
     })
   );
 
   conn.on(
     "close",
-    asyncHandler(async () => await handleClose(playerId))
+    asyncHandler(async () => await handleClose(connId))
   );
 });
 
