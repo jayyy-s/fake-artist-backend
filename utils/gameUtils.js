@@ -35,21 +35,21 @@ const indexOfConnId = (players, connIdToFind) => {
   return players.indexOf(players.find((p) => p.includes(connIdToFind)));
 };
 
-const getPlayerUsernameByConnId = asyncHandler(async (connId, gameId) => {
+const getPlayerByConnId = asyncHandler(async (connId, gameId) => {
   const game = await searchGameById(gameId);
   if (!game) return null;
   const player = game.players[indexOfConnId(game.players, connId)];
 
-  return player.username;
+  return JSON.parse(player);
 });
 
 const getPlayers = (game) => {
-  let playerUsernames = [];
+  let players = [];
   let playersJson = game.players.map((p) => JSON.parse(p));
 
-  playersJson.map((player) => playerUsernames.push({ username: player.username, id: player.playerId }));
+  playersJson.map((player) => players.push({ username: player.username, id: player.playerId }));
 
-  return playerUsernames;
+  return players;
 };
 
 export {
@@ -57,6 +57,6 @@ export {
   getGameEntityId,
   removePlayerFromGame,
   indexOfConnId,
-  getPlayerUsernameByConnId,
+  getPlayerByConnId,
   getPlayers,
 };

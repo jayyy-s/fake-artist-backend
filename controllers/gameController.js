@@ -1,7 +1,30 @@
 import asyncHandler from "express-async-handler";
 import { gameRepository } from "../models/gameModel.js";
 import { v4 as uuidv4 } from "uuid";
-import { searchGameById, getGameEntityId } from "../utils/gameUtils.js";
+import {
+  searchGameById,
+  getGameEntityId,
+  getPlayerByConnId,
+  getPlayers,
+} from "../utils/gameUtils.js";
+
+const formatPlayerData = asyncHandler(async (game) => {
+  if (game.currentArtist) {
+    const currentArtist = await getPlayerByConnId(
+      game.currentArtist,
+      game.gameId
+    );
+
+    game.currentArtist = {
+      username: currentArtist.username,
+      id: currentArtist.playerId,
+    };
+  }
+
+  if (game.players) game.players = getPlayers(game);
+
+  return game;
+});
 
 const createGame = asyncHandler(async (req, res) => {
   let newGame = {
@@ -23,21 +46,25 @@ const createGame = asyncHandler(async (req, res) => {
 
 const updateGameState = asyncHandler(async (req, res) => {
   let game = await searchGameById(req.params.id);
-  
-  game.canvasState = req.body.canvasState
+
+  game.canvasState = req.body.canvasState;
   await gameRepository.save(game);
+
+  game = await formatPlayerData(game);
 
   res.status(201).json(game);
 });
 
-const getGameById = asyncHandler(async (req, res, next) => {
-  const game = await searchGameById(req.params.id);
+const getGameById = asyncHandler(async (req, res) => {
+  let game = await searchGameById(req.params.id);
   if (!game) {
     res.status(404);
     throw new Error("Game does not exist");
   }
 
-  res.status(201).json(game);
+  game = await formatPlayerData(game);
+
+  res.status(201).json(game); 
 });
 
 const removeGame = asyncHandler(async (req, res) => {
