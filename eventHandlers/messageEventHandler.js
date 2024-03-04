@@ -85,6 +85,11 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       });
       break;
     case "hostStartGame":
+      if (game.players.length < 4) { // Don't allow games to start with less than 4 players
+        emit(connId, { type: "notEnoughPlayers" });
+        break;
+      }
+
       const questionMasterIndex = Math.floor(
         Math.random() * game.players.length
       );
