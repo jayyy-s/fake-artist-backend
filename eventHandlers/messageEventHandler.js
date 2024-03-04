@@ -59,9 +59,16 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
     case "drawLine":
       // cycle current artist to next player
       const currentIndex = indexOfConnId(players, connId);
-      const nextIndex = (currentIndex + 1) % players.length;
-      const nextArtistJson = JSON.parse(players[nextIndex]);
-      const nextArtist = nextArtistJson.connId;
+      let nextIndex = (currentIndex + 1) % players.length;
+      let nextArtistJson = JSON.parse(players[nextIndex]);
+      let nextArtist = nextArtistJson.connId;
+      // cycle if nextArtis is the question master
+      if (nextArtist === game.questionMaster) {
+        nextIndex = (nextIndex + 1) % players.length;
+        nextArtistJson = JSON.parse(players[nextIndex]);
+        nextArtist = nextArtistJson.connId;
+      }
+
       game.currentArtist = nextArtist;
 
       await gameRepository.save(game);
@@ -101,18 +108,31 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       game.gameState = "active";
 
       await gameRepository.save(game);
-      broadcast(gameId, { type: "serverStartGame" }, connId, SEND_TO_SENDER);
+      broadcast(
+        gameId,
+        {
+          type: "serverStartGame",
+          data: {
+            questionMaster: {
+              username: questionMasterJson.username,
+              id: questionMasterJson.playerId,
+            },
+          },
+        },
+        connId,
+        SEND_TO_SENDER
+      );
       emit(questionMaster, { type: "promptQuestionMaster" });
-      // Inform all players of current artist
-      // broadcastCurrentArtist(gameId, connId, {
-      //   username: firstArtistJson.username,
-      //   id: firstArtistJson.playerId,
-      // });
-      // emit(firstArtist, { type: "drawingTurn" });
       break;
     case "setPrompt":
-      const randomPlayerIndex = Math.floor(Math.random() * game.players.length);
-      const firstArtistJson = JSON.parse(game.players[randomPlayerIndex]);
+      let randomPlayerIndex = Math.floor(Math.random() * game.players.length);
+      let firstArtistJson = JSON.parse(game.players[randomPlayerIndex]);
+
+      while (firstArtistJson.connId === game.questionMaster) {
+        randomPlayerIndex = Math.floor(Math.random() * game.players.length);
+        firstArtistJson = JSON.parse(game.players[randomPlayerIndex]);
+      }
+
       const firstArtist = firstArtistJson.connId;
       game.currentArtist = firstArtist;
       const { category, title } = game;
@@ -130,7 +150,7 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       );
       emit(game.fakeArtist, {
         type: "setPrompt",
-        data: { category: "???", title: "???" },
+        data: { category, title: "???" },
       });
       // Inform all players of current artist
       broadcastCurrentArtist(gameId, connId, {
