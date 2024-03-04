@@ -16,23 +16,9 @@ type Player = {
 };
 */
 
-/*
-
-POTENTIAL SCHEMA:
-
-game: {
-  gameId: { type: "string" },
-  canvasState: { type: "string" },
-  questionMaster: { type: "string" },
-  fakeArtist: { type: "string" },
-  currentArtist: { type: "string" }
-}
-
-*/
-
 const gameSchema = new Schema("game", {
   gameId: { type: "string" },
-  players: { type: "string[]" }, // list of player ids (conn ids)
+  players: { type: "string[]" }, // list of players
   // TODO: Add a 'lobby' of waiting players for when game is active - add them on next game start
   host: { type: "string" }, // the host player who controls when the game starts and when to go to the next round
   questionMaster: { type: "string" },
@@ -40,6 +26,8 @@ const gameSchema = new Schema("game", {
   currentArtist: { type: "string" },
   canvasState: { type: "string" },
   gameState: { type: "string" },
+  category: { type: "string" },
+  title: { type: "string" },
   playerIdCounter: { type: "number" },
 });
 

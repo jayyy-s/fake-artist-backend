@@ -78,14 +78,60 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       });
       break;
     case "hostStartGame":
-      const randomPlayerIndex = Math.floor(Math.random() * game.players.length);
-      const firstArtistJson = JSON.parse(game.players[randomPlayerIndex]);
-      const firstArtist = firstArtistJson.connId;
-      game.currentArtist = firstArtist;
+      const questionMasterIndex = Math.floor(
+        Math.random() * game.players.length
+      );
+      let fakeArtistIndex = Math.floor(Math.random() * game.players.length);
+
+      while (fakeArtistIndex === questionMasterIndex) {
+        // regenerate if both indicies are equal
+        // could technically be optimized to not generate the same number more than once
+        fakeArtistIndex = Math.floor(Math.random() * game.players.length);
+      }
+
+      // set question master
+      const questionMasterJson = JSON.parse(game.players[questionMasterIndex]);
+      const questionMaster = questionMasterJson.connId;
+      game.questionMaster = questionMaster;
+
+      // set fake artist
+      const fakeArtistJson = JSON.parse(game.players[fakeArtistIndex]);
+      const fakeArtist = fakeArtistJson.connId;
+      game.fakeArtist = fakeArtist;
       game.gameState = "active";
 
       await gameRepository.save(game);
       broadcast(gameId, { type: "serverStartGame" }, connId, SEND_TO_SENDER);
+      emit(questionMaster, { type: "promptQuestionMaster" });
+      // Inform all players of current artist
+      // broadcastCurrentArtist(gameId, connId, {
+      //   username: firstArtistJson.username,
+      //   id: firstArtistJson.playerId,
+      // });
+      // emit(firstArtist, { type: "drawingTurn" });
+      break;
+    case "setPrompt":
+      const randomPlayerIndex = Math.floor(Math.random() * game.players.length);
+      const firstArtistJson = JSON.parse(game.players[randomPlayerIndex]);
+      const firstArtist = firstArtistJson.connId;
+      game.currentArtist = firstArtist;
+      const { category, title } = game;
+
+      await gameRepository.save(game);
+      // SMELL: Two broadcasts seems odd?...maybe change to single message w/ cat, title, first artist
+      // Inform all players except fake artist of category + title
+      broadcast(
+        gameId,
+        {
+          type: "setPrompt",
+          data: { category, title },
+        },
+        game.fakeArtist
+      );
+      emit(game.fakeArtist, {
+        type: "setPrompt",
+        data: { category: "???", title: "???" },
+      });
       // Inform all players of current artist
       broadcastCurrentArtist(gameId, connId, {
         username: firstArtistJson.username,

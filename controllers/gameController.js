@@ -36,6 +36,8 @@ const createGame = asyncHandler(async (req, res) => {
     currentArtist: "",
     canvasState: "",
     gameState: "inactive",
+    category: "",
+    title: "",
     playerIdCounter: 0,
   };
 
@@ -47,9 +49,20 @@ const createGame = asyncHandler(async (req, res) => {
 const updateGameState = asyncHandler(async (req, res) => {
   let game = await searchGameById(req.params.id);
 
-  game.canvasState = req.body.canvasState;
+  if (req.body.canvasState) {
+    game.canvasState = req.body.canvasState;
+  }
+
+  if (req.body.prompt) {
+    const { prompt } = req.body;
+    game.category = prompt.category;
+    game.title = prompt.title;
+  }
+
+  // save game to DB
   await gameRepository.save(game);
 
+  // format players before sending to client
   game = await formatPlayerData(game);
 
   res.status(201).json(game);
@@ -64,7 +77,7 @@ const getGameById = asyncHandler(async (req, res) => {
 
   game = await formatPlayerData(game);
 
-  res.status(201).json(game); 
+  res.status(201).json(game);
 });
 
 const removeGame = asyncHandler(async (req, res) => {
