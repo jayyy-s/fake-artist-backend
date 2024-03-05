@@ -12,6 +12,7 @@ import {
   indexOfConnId,
   getPlayers,
 } from "../utils/gameUtils.js";
+import { randomColor } from "../utils/miscUtils.js";
 import asyncHandler from "express-async-handler";
 import { gameRepository } from "../models/gameModel.js";
 
@@ -28,15 +29,21 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       const { username } = message.data;
       connections[connId].gameId = gameId;
       if (!game) return; // return on null games (can happen if navigated to invalid id)
-
+      const playerColor = randomColor(game.availableColors);
       // add player if not already included
       if (!sendingPlayer) {
+        // remove new color from available colors
+        game.availableColors.splice(
+          game.availableColors.indexOf(playerColor),
+          1
+        );
+
         const playerToAdd = {
           connId, // Used only by server/DB to broadcast/track player states
           playerId: game.playerIdCounter, // Used to send information about other clients to client
           username,
+          color: playerColor,
         };
-
         game.playerIdCounter = game.playerIdCounter + 1; // Increment id counter to give next player id unique to game
 
         game.players.push(JSON.stringify(playerToAdd));
@@ -54,6 +61,8 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
         connId,
         SEND_TO_SENDER
       );
+      // Tell player their own color
+      emit(connId, { type: "setPlayerColor", data: { color: playerColor } });
       await gameRepository.save(game);
       break;
     case "drawLine":
@@ -85,7 +94,8 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       });
       break;
     case "hostStartGame":
-      if (game.players.length < 4) { // Don't allow games to start with less than 4 players
+      if (game.players.length < 4) {
+        // Don't allow games to start with less than 4 players
         emit(connId, { type: "notEnoughPlayers" });
         break;
       }

@@ -29,6 +29,7 @@ const gameSchema = new Schema("game", {
   category: { type: "string" },
   title: { type: "string" },
   playerIdCounter: { type: "number" },
+  availableColors: { type: "string[]" },
 });
 
 export const gameRepository = new Repository(gameSchema, client);

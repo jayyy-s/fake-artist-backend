@@ -25,7 +25,12 @@ const getGameEntityId = asyncHandler(async (gameId) => {
 const removePlayerFromGame = asyncHandler(async (gameId, connId) => {
   const game = await searchGameById(gameId);
   if (!game) return null;
-  game.players.splice(indexOfConnId(game.players, connId), 1);
+  const playerToRemoveIndex = indexOfConnId(game.players, connId);
+  // add removed player's color back to available pool
+  const { color } = JSON.parse(game.players[playerToRemoveIndex]);
+  game.availableColors.push(color); 
+
+  game.players.splice(playerToRemoveIndex, 1);
 
   gameRepository.save(game);
   return game;
@@ -47,7 +52,13 @@ const getPlayers = (game) => {
   let players = [];
   let playersJson = game.players.map((p) => JSON.parse(p));
 
-  playersJson.map((player) => players.push({ username: player.username, id: player.playerId }));
+  playersJson.map((player) =>
+    players.push({
+      username: player.username,
+      id: player.playerId,
+      color: player.color,
+    })
+  );
 
   return players;
 };
