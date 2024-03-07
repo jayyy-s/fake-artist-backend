@@ -31,16 +31,20 @@ const createGame = asyncHandler(async (req, res) => {
   let newGame = {
     gameId: uuidv4(),
     players: [],
+    lobby: [],
     host: "",
     questionMaster: "",
     fakeArtist: "",
     currentArtist: "",
+    firstArtist: "",
     canvasState: "",
     gameState: "inactive",
     category: "",
     title: "",
     playerIdCounter: 0,
     availableColors: Object.values(COLORS),
+    roundCount: 0,
+    gameLength: 2,
   };
 
   await gameRepository.save(newGame);

@@ -1,5 +1,11 @@
 import asyncHandler from "express-async-handler";
 import { gameRepository } from "../models/gameModel.js";
+import {
+  SEND_TO_SENDER,
+  broadcast,
+  broadcastCurrentArtist,
+  emit,
+} from "./messageSendUtils.js";
 
 const searchGameById = asyncHandler(async (gameId) => {
   if (!gameId) return null;
@@ -25,10 +31,16 @@ const getGameEntityId = asyncHandler(async (gameId) => {
 const removePlayerFromGame = asyncHandler(async (gameId, connId) => {
   const game = await searchGameById(gameId);
   if (!game) return null;
+
+  // cycle to next artist if this was the current artist
+  if (game.currentArtist === connId) {
+    cycleArtist(game, connId);
+  }
+
   const playerToRemoveIndex = indexOfConnId(game.players, connId);
   // add removed player's color back to available pool
   const { color } = JSON.parse(game.players[playerToRemoveIndex]);
-  game.availableColors.push(color); 
+  game.availableColors.push(color);
 
   game.players.splice(playerToRemoveIndex, 1);
 
@@ -63,6 +75,46 @@ const getPlayers = (game) => {
   return players;
 };
 
+const endGame = asyncHandler(async (game, connId) => {
+  game.gameState = "voting";
+  game.currentArtist = "";
+  broadcast(game.gameId, { type: "votePhase" }, connId, SEND_TO_SENDER);
+  await gameRepository.save(game);
+});
+
+const cycleArtist = asyncHandler(async (game, connId) => {
+  const { players, gameId } = game;
+  // cycle current artist to next player
+  const currentIndex = indexOfConnId(players, connId);
+  let nextIndex = (currentIndex + 1) % players.length;
+  let nextArtistJson = JSON.parse(players[nextIndex]);
+  let nextArtist = nextArtistJson.connId;
+  // cycle if nextArtist is the question master
+  if (nextArtist === game.questionMaster) {
+    nextIndex = (nextIndex + 1) % players.length;
+    nextArtistJson = JSON.parse(players[nextIndex]);
+    nextArtist = nextArtistJson.connId;
+  }
+
+  if (nextArtist === game.firstArtist) {
+    game.roundCount = game.roundCount + 1;
+    if (game.roundCount === game.gameLength) {
+      endGame(game), connId;
+      return;
+    }
+  }
+
+  game.currentArtist = nextArtist;
+  await gameRepository.save(game);
+
+  // broadcast the next artist
+  emit(nextArtist, { type: "drawingTurn" });
+  broadcastCurrentArtist(gameId, connId, {
+    username: nextArtistJson.username,
+    id: nextArtistJson.playerId,
+  });
+});
+
 export {
   searchGameById,
   getGameEntityId,
@@ -70,4 +122,5 @@ export {
   indexOfConnId,
   getPlayerByConnId,
   getPlayers,
+  cycleArtist,
 };

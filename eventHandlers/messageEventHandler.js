@@ -9,8 +9,8 @@ import {
   searchGameById,
   getGameEntityId,
   removePlayerFromGame,
-  indexOfConnId,
   getPlayers,
+  cycleArtist,
 } from "../utils/gameUtils.js";
 import { randomColor } from "../utils/miscUtils.js";
 import asyncHandler from "express-async-handler";
@@ -20,9 +20,8 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
   const message = JSON.parse(bytes.toString());
   const { gameId } = message.data;
   const game = await searchGameById(gameId);
-  const { canvasState, gameState, players } = game;
 
-  const sendingPlayer = players.find((p) => p.includes(connId));
+  const sendingPlayer = game.players.find((p) => p.includes(connId));
 
   switch (message.type) {
     case "clientReady":
@@ -66,32 +65,15 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       await gameRepository.save(game);
       break;
     case "drawLine":
-      // cycle current artist to next player
-      const currentIndex = indexOfConnId(players, connId);
-      let nextIndex = (currentIndex + 1) % players.length;
-      let nextArtistJson = JSON.parse(players[nextIndex]);
-      let nextArtist = nextArtistJson.connId;
-      // cycle if nextArtis is the question master
-      if (nextArtist === game.questionMaster) {
-        nextIndex = (nextIndex + 1) % players.length;
-        nextArtistJson = JSON.parse(players[nextIndex]);
-        nextArtist = nextArtistJson.connId;
+      if (game.gameState === "active") {
+        cycleArtist(game, connId);
+        const { canvasState } = game;
+        broadcast(
+          gameId,
+          { type: "drawCurrentCanvasState", data: { canvasState } },
+          connId
+        );
       }
-
-      game.currentArtist = nextArtist;
-
-      await gameRepository.save(game);
-
-      broadcast(
-        gameId,
-        { type: "drawCurrentCanvasState", data: { canvasState, gameState } },
-        connId
-      );
-      emit(nextArtist, { type: "drawingTurn" });
-      broadcastCurrentArtist(gameId, connId, {
-        username: nextArtistJson.username,
-        id: nextArtistJson.playerId,
-      });
       break;
     case "hostStartGame":
       if (game.players.length < 4) {
@@ -150,6 +132,7 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
 
       const firstArtist = firstArtistJson.connId;
       game.currentArtist = firstArtist;
+      game.firstArtist = firstArtist;
       const { category, title } = game;
 
       await gameRepository.save(game);
@@ -182,6 +165,7 @@ const handleClose = asyncHandler(async (connId) => {
   const game = await removePlayerFromGame(gameId, connId);
   delete connections[connId];
 
+  // lil null checky
   if (!game) return;
 
   // delete games with no players
