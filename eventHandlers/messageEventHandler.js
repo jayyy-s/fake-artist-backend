@@ -12,7 +12,7 @@ import {
   getPlayers,
   cycleArtist,
 } from "../utils/gameUtils.js";
-import { randomColor } from "../utils/miscUtils.js";
+import { randomColorCombo, COLOR_COMBOS } from "../utils/miscUtils.js";
 import asyncHandler from "express-async-handler";
 import { gameRepository } from "../models/gameModel.js";
 
@@ -28,20 +28,23 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       const { username } = message.data;
       connections[connId].gameId = gameId;
       if (!game) return; // return on null games (can happen if navigated to invalid id)
-      const playerColor = randomColor(game.availableColors);
+      const playerColorCombo = randomColorCombo(game.availableColorCodes);
       // add player if not already included
       if (!sendingPlayer) {
         // remove new color from available colors
-        game.availableColors.splice(
-          game.availableColors.indexOf(playerColor),
+        game.availableColorCodes.splice(
+          game.availableColorCodes.indexOf(COLOR_COMBOS.indexOf(playerColorCombo)),
           1
         );
+
+        console.log(COLOR_COMBOS.indexOf(playerColorCombo));
+        console.log(game.availableColorCodes);
 
         const playerToAdd = {
           connId, // Used only by server/DB to broadcast/track player states
           playerId: game.playerIdCounter, // Used to send information about other clients to client
           username,
-          color: playerColor,
+          colorCombo: playerColorCombo,
         };
         game.playerIdCounter = game.playerIdCounter + 1; // Increment id counter to give next player id unique to game
 
@@ -60,8 +63,11 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
         connId,
         SEND_TO_SENDER
       );
-      // Tell player their own color
-      emit(connId, { type: "setPlayerColor", data: { color: playerColor } });
+      // Tell player their own color code
+      emit(connId, {
+        type: "setPlayerColor",
+        data: { colorCombo: playerColorCombo },
+      });
       await gameRepository.save(game);
       break;
     case "drawLine":

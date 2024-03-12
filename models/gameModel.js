@@ -14,7 +14,7 @@ const gameSchema = new Schema("game", {
   category: { type: "string" },
   title: { type: "string" },
   playerIdCounter: { type: "number" },
-  availableColors: { type: "string[]" },
+  availableColorCodes: { type: "number[]" },
   roundCount: { type: "number" },
   gameLength: { type: "number" },
 });

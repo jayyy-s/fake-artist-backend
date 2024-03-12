@@ -7,7 +7,7 @@ import {
   getPlayerByConnId,
   getPlayers,
 } from "../utils/gameUtils.js";
-import { COLORS } from "../utils/miscUtils.js";
+import { COLOR_COMBOS } from "../utils/miscUtils.js";
 
 const formatPlayerData = asyncHandler(async (game) => {
   if (game.currentArtist) {
@@ -42,7 +42,7 @@ const createGame = asyncHandler(async (req, res) => {
     category: "",
     title: "",
     playerIdCounter: 0,
-    availableColors: Object.values(COLORS),
+    availableColorCodes: Array.from(Array(COLOR_COMBOS.length).keys()),
     roundCount: 0,
     gameLength: 2,
   };

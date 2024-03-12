@@ -1,21 +1,50 @@
-const COLORS = {
-  Brown: "#964910",
-  Red: "#ff2f18",
-  Orange: "#ff822a",
-  Yellow: "#fbdd38",
-  LightGreen: "#7ccf9f",
-  DarkGreen: "#0d6f64",
-  Cyan: "#00bbf2",
-  Blue: "#0458b0",
-  Indigo: "#394ba7",
-  Purple: "#bd58ab",
-  Pink: "#fa3198",
-  Gray: "#42454b",
+const COLOR_COMBOS = [
+  {
+    primary: "#ff4b80",
+    secondary: "#fadbde",
+  },
+  {
+    primary: "#492632",
+    secondary: "#8d253c",
+  },
+  {
+    primary: "#23697f",
+    secondary: "#c4aa7c",
+  },
+  {
+    primary: "#3ab6c6",
+    secondary: "#235f6c",
+  },
+  {
+    primary: "#992620",
+    secondary: "#f6471c",
+  },
+  {
+    primary: "#fad652",
+    secondary: "#256477",
+  },
+  {
+    primary: "#ff7b2f",
+    secondary: "#fec449",
+  },
+  {
+    primary: "#809c9e",
+    secondary: "#ff3c55",
+  },
+  {
+    primary: "#439a58",
+    secondary: "#fa792f",
+  },
+  {
+    primary: "#439a58",
+    secondary: "#ffad85",
+  },
+];
+
+const randomColorCombo = (availableColorCodes) => {
+  const randomColorCodeIndex =
+    availableColorCodes[Math.floor(Math.random() * availableColorCodes.length)];
+  return COLOR_COMBOS[randomColorCodeIndex];
 };
 
-const randomColor = (availableColors) => {
-  const randomColorIndex = Math.floor(Math.random() * availableColors.length);
-  return availableColors[randomColorIndex];
-};
-
-export { randomColor, COLORS };
+export { randomColorCombo, COLOR_COMBOS };

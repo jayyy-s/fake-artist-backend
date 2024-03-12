@@ -6,6 +6,7 @@ import {
   broadcastCurrentArtist,
   emit,
 } from "./messageSendUtils.js";
+import { COLOR_COMBOS } from "./miscUtils.js";
 
 const searchGameById = asyncHandler(async (gameId) => {
   if (!gameId) return null;
@@ -39,8 +40,9 @@ const removePlayerFromGame = asyncHandler(async (gameId, connId) => {
 
   const playerToRemoveIndex = indexOfConnId(game.players, connId);
   // add removed player's color back to available pool
-  const { color } = JSON.parse(game.players[playerToRemoveIndex]);
-  game.availableColors.push(color);
+  const { colorCombo } = JSON.parse(game.players[playerToRemoveIndex]);
+  const colorCode = COLOR_COMBOS.indexOf(colorCombo);
+  game.availableColorCodes.push(colorCode);
 
   game.players.splice(playerToRemoveIndex, 1);
 
@@ -68,7 +70,7 @@ const getPlayers = (game) => {
     players.push({
       username: player.username,
       id: player.playerId,
-      color: player.color,
+      colorCombo: player.colorCombo,
     })
   );
 
