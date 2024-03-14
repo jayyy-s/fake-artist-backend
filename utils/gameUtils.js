@@ -92,7 +92,7 @@ const startVotingPhase = asyncHandler(async (game, connId) => {
   broadcast(
     game.gameId,
     { type: "votePhase" },
-    game.questoinMaster,
+    connId,
     SEND_TO_SENDER
   );
   await gameRepository.save(game);
