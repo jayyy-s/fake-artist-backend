@@ -62,6 +62,15 @@ const getPlayerByConnId = asyncHandler(async (connId, gameId) => {
   return JSON.parse(player);
 });
 
+const getPlayerByPlayerId = (game, playerId) => {
+  const player = game.players.filter((p) => {
+    const currentPlayer = JSON.parse(p);
+    return currentPlayer.playerId === playerId;
+  })[0];
+
+  return player ? JSON.parse(player) : null;
+};
+
 const getPlayers = (game) => {
   let players = [];
   let playersJson = game.players.map((p) => JSON.parse(p));
@@ -77,10 +86,15 @@ const getPlayers = (game) => {
   return players;
 };
 
-const endGame = asyncHandler(async (game, connId) => {
+const startVotingPhase = asyncHandler(async (game, connId) => {
   game.gameState = "voting";
   game.currentArtist = "";
-  broadcast(game.gameId, { type: "votePhase" }, connId, SEND_TO_SENDER);
+  broadcast(
+    game.gameId,
+    { type: "votePhase" },
+    game.questoinMaster,
+    SEND_TO_SENDER
+  );
   await gameRepository.save(game);
 });
 
@@ -101,7 +115,7 @@ const cycleArtist = asyncHandler(async (game, connId) => {
   if (nextArtist === game.firstArtist) {
     game.roundCount = game.roundCount + 1;
     if (game.roundCount === game.gameLength) {
-      endGame(game), connId;
+      startVotingPhase(game, connId);
       return;
     }
   }
@@ -117,6 +131,42 @@ const cycleArtist = asyncHandler(async (game, connId) => {
   });
 });
 
+const updatePlayer = asyncHandler(async (game, player) => {
+  const playerToUpdateIndex = indexOfConnId(game.players, player.connId);
+  let playerJson = JSON.parse(game.players[playerToUpdateIndex]);
+  game.players.splice(playerToUpdateIndex, 1, JSON.stringify(player));
+
+  return game;
+});
+
+const hasAllVoted = (game) => {
+  const hasPlayerVoted = (player) => {
+    let playerJson = JSON.parse(player);
+    return playerJson.hasVoted || game.questionMaster === playerJson.connId; // QM doesn't vote
+  };
+
+  return game.players.every((p) => hasPlayerVoted(p));
+};
+
+const sortedVotes = (game) => {
+  const voteCount = {};
+  game.votes.forEach((vote) =>
+    voteCount[vote] ? (voteCount[vote] += 1) : (voteCount[vote] = 1)
+  );
+
+  const sortedVoteIds = Object.keys(voteCount).sort(
+    (a, b) => voteCount[b] - voteCount[a]
+  );
+
+  // { playerId, voteCount }
+  const sortedVotes = sortedVoteIds.map((voteId) => ({
+    playerId: voteId,
+    voteCount: voteCount[voteId],
+  }));
+
+  return sortedVotes;
+};
+
 export {
   searchGameById,
   getGameEntityId,
@@ -125,4 +175,8 @@ export {
   getPlayerByConnId,
   getPlayers,
   cycleArtist,
+  updatePlayer,
+  hasAllVoted,
+  sortedVotes,
+  getPlayerByPlayerId,
 };

@@ -11,6 +11,11 @@ import {
   removePlayerFromGame,
   getPlayers,
   cycleArtist,
+  getPlayerByConnId,
+  updatePlayer,
+  hasAllVoted,
+  sortedVotes,
+  getPlayerByPlayerId,
 } from "../utils/gameUtils.js";
 import { randomColorCombo, COLOR_COMBOS } from "../utils/miscUtils.js";
 import asyncHandler from "express-async-handler";
@@ -29,24 +34,25 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       connections[connId].gameId = gameId;
       if (!game) return; // return on null games (can happen if navigated to invalid id)
       const playerColorCombo = randomColorCombo(game.availableColorCodes);
+      const playerId = game.playerIdCounter;
       // add player if not already included
       if (!sendingPlayer) {
         // remove new color from available colors
         game.availableColorCodes.splice(
-          game.availableColorCodes.indexOf(COLOR_COMBOS.indexOf(playerColorCombo)),
+          game.availableColorCodes.indexOf(
+            COLOR_COMBOS.indexOf(playerColorCombo)
+          ),
           1
         );
 
-        console.log(COLOR_COMBOS.indexOf(playerColorCombo));
-        console.log(game.availableColorCodes);
-
+        game.playerIdCounter = game.playerIdCounter + 1; // Increment id counter to give next player id unique to game
         const playerToAdd = {
           connId, // Used only by server/DB to broadcast/track player states
-          playerId: game.playerIdCounter, // Used to send information about other clients to client
+          playerId, // Used to send information about other clients to client
           username,
           colorCombo: playerColorCombo,
+          hasVoted: false,
         };
-        game.playerIdCounter = game.playerIdCounter + 1; // Increment id counter to give next player id unique to game
 
         game.players.push(JSON.stringify(playerToAdd));
         if (game.players.length === 1) {
@@ -65,14 +71,14 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       );
       // Tell player their own color code
       emit(connId, {
-        type: "setPlayerColor",
-        data: { colorCombo: playerColorCombo },
+        type: "serverConnected",
+        data: { colorCombo: playerColorCombo, playerId },
       });
       await gameRepository.save(game);
       break;
     case "drawLine":
       if (game.gameState === "active") {
-        cycleArtist(game, connId);
+        await cycleArtist(game, connId);
         const { canvasState } = game;
         broadcast(
           gameId,
@@ -162,6 +168,76 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
         id: firstArtistJson.playerId,
       });
       emit(firstArtist, { type: "drawingTurn" });
+      break;
+    case "castVote":
+      /**
+       * 
+       *
+
+c: send playerId to server
+s: store array of votes (represented as ids)
+
+how do i know when the last vote is sent?
+the number of votes is equal to the number of players minus 1 (no vote from question master)
+edge cases:
+player disconnects:
+ qm: doesnt matter
+ host: game is deleted
+ fake artist: actual problem
+ other: number of players goes down anyway
+someone just doesn't answer:
+ no vote is sent?
+ timer => timer runs out, send "no" vote (id = -1 or something)
+
+
+       */
+      const { id } = message.data;
+      game.votes.push(id);
+      const player = await getPlayerByConnId(connId, gameId);
+      player.hasVoted = true;
+
+      await gameRepository.save(await updatePlayer(game, player));
+
+      // voting is over when there are votes from everyone
+      if (hasAllVoted(game)) {
+        // check most voted
+        const sortedVoteCounts = sortedVotes(game);
+        const mostVotedId =
+          sortedVoteCounts[1] &&
+          sortedVoteCounts[0].voteCount === sortedVoteCounts[1].voteCount
+            ? "-1" // Tie for most voted
+            : sortedVoteCounts[0].playerId;
+        const mostVotedPlayer = getPlayerByPlayerId(
+          game,
+          parseInt(mostVotedId)
+        );
+
+        // if EXCLUSIVELY fake artist, prompt fake artist to guess
+        if (mostVotedPlayer && mostVotedPlayer.connId === game.fakeArtist) {
+          //   fake artist sends guess
+          //   question master prompted to evaluate
+          //   question master determines if it was close enough
+          emit(game.fakeArtist, { type: "promptFakeArtistGuess" });
+          broadcast(gameId, { type: "fakeArtistFound" }, game.fakeArtist);
+        } else {
+          // fake artist wins
+          broadcast(gameId, { type: "fakeArtistWin" }, connId, SEND_TO_SENDER);
+        }
+      }
+      break;
+    case "fakeArtistTitleGuess":
+      emit(game.questionMaster, {
+        type: "promptQuestionMasterTitleCheck",
+        data: { fakeArtistGuess: message.data.fakeArtistGuess },
+      });
+      break;
+    case "questionMasterDecision":
+      let { decision } = message.data;
+      if (decision === "correct") {
+        broadcast(gameId, { type: "fakeArtistWin" }, connId, SEND_TO_SENDER);
+      } else {
+        broadcast(gameId, { type: "realArtistsWin" }, connId, SEND_TO_SENDER);
+      }
       break;
   }
 });

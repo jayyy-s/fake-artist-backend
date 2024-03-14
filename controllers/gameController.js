@@ -45,6 +45,7 @@ const createGame = asyncHandler(async (req, res) => {
     availableColorCodes: Array.from(Array(COLOR_COMBOS.length).keys()),
     roundCount: 0,
     gameLength: 2,
+    votes: [],
   };
 
   await gameRepository.save(newGame);
