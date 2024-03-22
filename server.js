@@ -24,6 +24,7 @@ if (process.env.ENVIRONMENT !== "development") {
   console.log(process.env.ALLOWED_ORIGIN);
   const corsOptions = {
     origin: process.env.ALLOWED_ORIGIN,
+    methods: ["GET, POST, OPTIONS, PUT, DELETE"],
   };
   console.log(corsOptions.origin);
   app.use(cors(corsOptions));
