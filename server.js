@@ -12,7 +12,7 @@ import connections from "./connections.js";
 import asyncHandler from "express-async-handler";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 
-const PORT = 5000 || process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 const app = express();
 const server = http.createServer(app);
@@ -42,4 +42,8 @@ wss.on("connection", (conn, req) => {
   );
 });
 
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+if (process.env.ENVIRONMENT === "development") {
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+} else {
+  server.listen(PORT, "0.0.0.0");
+}
