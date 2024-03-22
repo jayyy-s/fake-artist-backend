@@ -33,10 +33,10 @@ const COLOR_COMBOS = [
   },
   {
     primary: "#439a58",
-    secondary: "#fa792f",
+    secondary: "#ff7b2f",
   },
   {
-    primary: "#439a58",
+    primary: "#43393c",
     secondary: "#ffad85",
   },
 ];
