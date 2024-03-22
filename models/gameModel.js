@@ -18,6 +18,7 @@ const gameSchema = new Schema("game", {
   roundCount: { type: "number" },
   gameLength: { type: "number" },
   votes: { type: "number[]" },
+  voterInfo: { type: "string[]" },
 });
 
 export const gameRepository = new Repository(gameSchema, client);

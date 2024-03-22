@@ -170,31 +170,18 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
       emit(firstArtist, { type: "drawingTurn" });
       break;
     case "castVote":
-      /**
-       * 
-       *
-
-c: send playerId to server
-s: store array of votes (represented as ids)
-
-how do i know when the last vote is sent?
-the number of votes is equal to the number of players minus 1 (no vote from question master)
-edge cases:
-player disconnects:
- qm: doesnt matter
- host: game is deleted
- fake artist: actual problem
- other: number of players goes down anyway
-someone just doesn't answer:
- no vote is sent?
- timer => timer runs out, send "no" vote (id = -1 or something)
-
-
-       */
+      // TODO: Handle player disconnects during voting
       const { id } = message.data;
       game.votes.push(id);
       const player = await getPlayerByConnId(connId, gameId);
       player.hasVoted = true;
+
+      const playerVoterInfo = {
+        voterId: player.playerId,
+        votedPlayerId: id,
+      };
+
+      game.voterInfo.push(JSON.stringify(playerVoterInfo));
 
       await gameRepository.save(await updatePlayer(game, player));
 
@@ -210,6 +197,31 @@ someone just doesn't answer:
         const mostVotedPlayer = getPlayerByPlayerId(
           game,
           parseInt(mostVotedId)
+        );
+
+        const voterData = game.voterInfo.map((voterInfo) =>
+          JSON.parse(voterInfo)
+        );
+        const sortedVoterDataMap = voterData.reduce(
+          (sortedVotes, voterInfo) => {
+            const { votedPlayerId, voterId } = voterInfo;
+            let votesSortedSoFar = sortedVotes.get(votedPlayerId) || [];
+            votesSortedSoFar.push(voterId);
+            sortedVotes.set(votedPlayerId, votesSortedSoFar);
+            return sortedVotes;
+          },
+          new Map()
+        );
+        const sortedVoterDataJson = Array.from(
+          sortedVoterDataMap,
+          ([votedPlayerId, voterIds]) => ({ votedPlayerId, voterIds })
+        );
+
+        broadcast(
+          gameId,
+          { type: "voterData", data: { voterData: sortedVoterDataJson } },
+          connId,
+          SEND_TO_SENDER
         );
 
         // if EXCLUSIVELY fake artist, prompt fake artist to guess

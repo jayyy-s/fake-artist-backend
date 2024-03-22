@@ -89,12 +89,7 @@ const getPlayers = (game) => {
 const startVotingPhase = asyncHandler(async (game, connId) => {
   game.gameState = "voting";
   game.currentArtist = "";
-  broadcast(
-    game.gameId,
-    { type: "votePhase" },
-    connId,
-    SEND_TO_SENDER
-  );
+  broadcast(game.gameId, { type: "votePhase" }, connId, SEND_TO_SENDER);
   await gameRepository.save(game);
 });
 
@@ -133,7 +128,6 @@ const cycleArtist = asyncHandler(async (game, connId) => {
 
 const updatePlayer = asyncHandler(async (game, player) => {
   const playerToUpdateIndex = indexOfConnId(game.players, player.connId);
-  let playerJson = JSON.parse(game.players[playerToUpdateIndex]);
   game.players.splice(playerToUpdateIndex, 1, JSON.stringify(player));
 
   return game;

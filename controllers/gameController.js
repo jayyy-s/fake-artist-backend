@@ -46,6 +46,7 @@ const createGame = asyncHandler(async (req, res) => {
     roundCount: 0,
     gameLength: 2,
     votes: [],
+    voterInfo: [],
   };
 
   await gameRepository.save(newGame);
