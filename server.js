@@ -18,16 +18,14 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 const server = http.createServer(app);
 
-const corsOptions = {
-  origin: process.env.ALLOWED_ORIGIN,
-};
-
 app.use(express.json());
 
 if (process.env.ENVIRONMENT !== "development") {
+  console.log(process.env.ALLOWED_ORIGIN);
   const corsOptions = {
     origin: process.env.ALLOWED_ORIGIN,
   };
+  console.log(corsOptions.origin);
   app.use(cors(corsOptions));
 }
 
