@@ -11,13 +11,25 @@ import {
 import connections from "./connections.js";
 import asyncHandler from "express-async-handler";
 import { errorHandler } from "./middleware/errorMiddleware.js";
+import cors from "cors";
 
 const PORT = process.env.PORT || 5000;
 
 const app = express();
 const server = http.createServer(app);
 
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGIN,
+};
+
 app.use(express.json());
+
+if (process.env.ENVIRONMENT === "development") {
+  const corsOptions = {
+    origin: process.env.ALLOWED_ORIGIN,
+  };
+  app.use(cors(corsOptions));
+}
 
 app.use("/game", gameRouter);
 
