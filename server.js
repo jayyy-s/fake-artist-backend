@@ -24,7 +24,7 @@ const corsOptions = {
 
 app.use(express.json());
 
-if (process.env.ENVIRONMENT === "development") {
+if (process.env.ENVIRONMENT !== "development") {
   const corsOptions = {
     origin: process.env.ALLOWED_ORIGIN,
   };
