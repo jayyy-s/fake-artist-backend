@@ -230,7 +230,7 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
           //   question master prompted to evaluate
           //   question master determines if it was close enough
           emit(game.fakeArtist, { type: "promptFakeArtistGuess" });
-          broadcast(gameId, { type: "fakeArtistFound" }, game.fakeArtist);
+          // broadcast(gameId, { type: "fakeArtistFound" }, game.fakeArtist);
         } else {
           // fake artist wins
           broadcast(gameId, { type: "fakeArtistWin" }, connId, SEND_TO_SENDER);
@@ -242,6 +242,14 @@ const handleMessage = asyncHandler(async (bytes, connId) => {
         type: "promptQuestionMasterTitleCheck",
         data: { fakeArtistGuess: message.data.fakeArtistGuess },
       });
+      broadcast(
+        gameId,
+        {
+          type: "setFakeArtistGuess",
+          data: { fakeArtistGuess: message.data.fakeArtistGuess },
+        },
+        game.fakeArtist
+      );
       break;
     case "questionMasterDecision":
       let { decision } = message.data;
